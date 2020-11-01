@@ -14,8 +14,8 @@ Files inside are as description: <br>
       b.3) User inputs time specifics. Which year he wants, which trimester, which month, etc. --> **Time Block** <br>
       
 **User** --> **Base Block** --> **Special Block** --> **Time Block** <br>
-                 Category         List of category      
-                 Department       List of department
-                 Contract         List of contract      Which time he wants
-                 Operator         List of operator
-                 Municipio        List of municipio
+                 Category         List of category                          <br>
+                 Department       List of department                        <br>
+                 Contract         List of contract      Which time he wants <br>
+                 Operator         List of operator                          <br>
+                 Municipio        List of municipio                         <br>
