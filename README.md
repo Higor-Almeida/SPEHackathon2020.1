@@ -13,9 +13,11 @@ Files inside are as description: <br>
       b.2) User inputs specific base block information: which departments, which operators, which contracts, etc. --> **Special Block** <br>
       b.3) User inputs time specifics. Which year he wants, which trimester, which month, etc. --> **Time Block** <br>
       
-**User** --> **Base Block** --> **Special Block** --> **Time Block**        <br>
-                 Category         List of category                          <br>
-                 Department       List of department                        <br>
-                 Contract         List of contract      Which time he wants <br>
-                 Operator         List of operator                          <br>
-                 Municipio        List of municipio                         <br>
+## Input format
+The **solution(df,modes="")** method accepts two parameters: <br>
+   1) **df** --> dataframe you're entering, this is standard on app.py, so not need to change it. <br>
+   2) **modes** <br>
+      Case 2.1) 'all' --> Selects all category columns.<br>
+      Case 2.2.) All other category columns separated by a comma, **no blank spacen**, i.e.:<br>
+         modes = 'Departamento,Municipio,Operadora' <br>
+         The function takes a string separated by a comma and splits it.
