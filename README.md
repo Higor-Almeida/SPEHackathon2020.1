@@ -13,7 +13,7 @@ Files inside are as description: <br>
       b.2) User inputs specific base block information: which departments, which operators, which contracts, etc. --> **Special Block** <br>
       b.3) User inputs time specifics. Which year he wants, which trimester, which month, etc. --> **Time Block** <br>
 2) **spyder.py:** <br>
-   a) 
+   a) Python file same code as app.py, but with a thorough inspection on the columns, grouping by values and categories and other EDA methods.
       
 ## Input format
 The **solution(df,modes="")** method accepts two parameters: <br>
