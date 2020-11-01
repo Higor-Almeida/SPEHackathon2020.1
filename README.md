@@ -13,7 +13,7 @@ Files inside are as description: <br>
       b.2) User inputs specific base block information: which departments, which operators, which contracts, etc. --> **Special Block** <br>
       b.3) User inputs time specifics. Which year he wants, which trimester, which month, etc. --> **Time Block** <br>
       
-**User** --> **Base Block** --> **Special Block** --> **Time Block** <br>
+**User** --> **Base Block** --> **Special Block** --> **Time Block**        <br>
                  Category         List of category                          <br>
                  Department       List of department                        <br>
                  Contract         List of contract      Which time he wants <br>
