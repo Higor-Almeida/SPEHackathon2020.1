@@ -22,6 +22,9 @@ def process_file(entry_df):
               "TPL COLOMBIA LTD - SUCURSAL COLOMBIA ANTES PANATLANTIC COLOMBIA LTD SUCURSAL EN COLOMBIA":"TPL COLOMBIA LTD - SUCURSAL COLOMBIA"}
 
     entry_df['Operadora'] = entry_df['Operadora'].replace(comp_mapper)
+    outside_path = str(pathlib.Path().absolute()) + "\\files\\"
+    print("File was created.")
+    entry_df.to_excel(str(outside_path)+"processado.xlsx")
     return entry_df
 
 df = process_file(df_real) #create our new processed file
