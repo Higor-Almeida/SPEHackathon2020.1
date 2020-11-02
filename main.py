@@ -25,22 +25,6 @@ app = dash.Dash(
 #carrega base
 df = pd.read_excel('colombia_consolidado.xlsx', index_col=0)
 
-#testando ainda (seriam os filtros)
-dff = df.copy()
-dff = dff[dff["Operadora"] == "ECOPETROL S.A."]
-dd = pd.unique(df["Year"])
-prod = []
-op = []
-
-for i in dd:
-    dfff = dff[dff["Year"] == i]
-    dffff = dfff["Enero"].sum()
-    prod.append(dffff)
-    op.append("ECOPETROL S.A.")
-
-#gráfico
-fig = px.bar(x=dd, y=prod, color=op, barmode="group")
-
 #layout da página (no momento só o gráfico e os filtros, ainda faltam alguns filtros)
 app.layout = html.Div(children=[
     dcc.Dropdown(
@@ -52,6 +36,7 @@ app.layout = html.Div(children=[
         #value=[],
         multi=True
     ),
+
     dcc.Dropdown(
         options=[
             {'label': 'Enero', 'value': 'Enero'},
@@ -65,16 +50,27 @@ app.layout = html.Div(children=[
             {'label': 'Sptiembre', 'value': 'Septiembre'},
             {'label': 'Octubre', 'value': 'Octubre'},
             {'label': 'Noviembre', 'value': 'Noviembre'},
-            {'label': 'Diciembre', 'value': 'Diciembre'},
+            {'label': 'Diciembre', 'value': 'Diciembre'}
         ],
         #value=[],
         multi=True
     ),
+
+    dcc.Dropdown(
+        id='operadoras',
+        options=[
+            {'label': 'ECOPETROL S.A.', 'value': 'ECOPETROL S.A.'}
+        ],
+        #value=['ECOPETROL S.A.'],
+        multi=True
+    ),
+
     dcc.Graph(
         id='example-graph',
-        figure=fig
+        figure={}
     )
 ])
+
 
 #url path
 @server.route("/dash")
@@ -86,10 +82,30 @@ def my_dash_app():
 def index():
     return render_template('index.html')
 
+#funcionalidade dos filtros
+@app.callback(
+    dash.dependencies.Output(component_id="example-graph", component_property="figure"),
+    [dash.dependencies.Input(component_id='operadoras', component_property='value')]
+)
+def update_graph(operadora):
+    container = "{}".format(operadora)
+    dff = df.copy()
+    dff = dff[dff["Operadora"] == operadora[0]]
+    dd = pd.unique(df["Year"])
+    prod = []
+    op = []
+    for i in dd:
+        dfff = dff[dff["Year"] == i]
+        dffff = dfff["Enero"].sum()
+        prod.append(dffff)
+        op.append(operadora[0])
+    fig = px.bar(x=dd, y=prod, color=op, barmode="group")
+    return fig
+
+
 #inicia app flask
 if __name__ == "__main__":
     server.run()
-
 
 
 
