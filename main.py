@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 
 #carrega base
-df = pd.read_excel('colombia_consolidado.xlsx')
+df = pd.read_excel('files\colombia_consolidado.xlsx')
 
 #cria app flask
 server = Flask(__name__)
@@ -22,18 +22,16 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(
     __name__,
     server=server, #instancia no app flask
-    url_base_pathname='/production/',
+    url_base_pathname='/production_5/',
     external_stylesheets=external_stylesheets
 )
 
 #layout da página (no momento só o gráfico e os filtros, ainda faltam alguns filtros)
 app.layout = html.Div(children=[
     dcc.Dropdown(
-        id='ano',
+        id='year',
         options=[
-            {'label': '2018', 'value': 2018},
-            {'label': '2019', 'value': 2019},
-            {'label': '2020', 'value': 2020}
+            {'label': i, 'value': i} for i in np.sort(pd.unique(df["Year"]))
         ],
         placeholder="Select a Year",
         multi=True
@@ -61,7 +59,7 @@ app.layout = html.Div(children=[
 
     dcc.Dropdown(
         id='operadoras',
-        options=[{'label': j, 'value': j} for j in np.sort(pd.unique(df["Operadora"]))
+        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Operadora"]))
                  ],
         placeholder="Select an Operator",
         multi=True,
@@ -70,34 +68,34 @@ app.layout = html.Div(children=[
 
     dcc.Dropdown(
         id='departamento',
-        options=[],
+        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Departamento"]))
+                 ],
         placeholder="Select a Department",
-        multi=True,
-        disabled=True
+        multi=True
     ),
 
     dcc.Dropdown(
         id='municipio',
-        options=[],
+        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Municipio"]))
+                 ],
         placeholder="Select a County",
-        multi=True,
-        disabled=True
+        multi=True
     ),
 
     dcc.Dropdown(
         id='contrato',
-        options=[],
+        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Contrato"]))
+                 ],
         placeholder="Select a Contract",
-        multi=True,
-        disabled=True
+        multi=True
     ),
 
     dcc.Dropdown(
         id='campo',
-        options=[],
+        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Campo"]))
+                 ],
         placeholder="Select a Field",
-        multi=True,
-        disabled=True
+        multi=True
     ),
 
     dcc.Graph(
@@ -106,99 +104,48 @@ app.layout = html.Div(children=[
     )
 ])
 
-@app.callback(
-    dash.dependencies.Output(component_id="example-graph", component_property="figure"),
-    [dash.dependencies.Input(component_id='operadoras', component_property='value'),
-     dash.dependencies.Input(component_id='ano', component_property='value'),
-     dash.dependencies.Input(component_id='mes', component_property='value'),
-     dash.dependencies.Input(component_id='departamento', component_property='value'),
-     dash.dependencies.Input(component_id='municipio', component_property='value'),
-     dash.dependencies.Input(component_id='contrato', component_property='value'),
-     dash.dependencies.Input(component_id='campo', component_property='value')]
-)
-def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
-    if mes is None or mes == []:
-        mes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre',
-               'Noviembre', 'Diciembre']
-    if operadora is None or operadora == []:
-        operadora = [i for i in np.sort(pd.unique(df["Operadora"]))]
-    if departamento is None or departamento == []:
-        departamento = [i for i in np.sort(pd.unique(df["Departamento"]))]
-    try:
-        prod = []
-        op = []
-        anos = []
-        for oper in operadora:
-            copy_data = df.copy()
-            copy_data = copy_data[copy_data["Operadora"] == oper]
-            for year in ano:
-                prod_cumu = 0
-                period = copy_data[copy_data["Year"] == year]
-                for month in mes:
-                    prod_cumu += period[month].sum()
-                prod.append(prod_cumu)
-                op.append(oper)
-                anos.append(year)
-        fig = px.bar(x=anos, y=prod, color=op, barmode="group", labels=dict(x='Year', y='Production', color='Operadora'))
-        fig.update_xaxes(tick0=2017, dtick=1)
-    except:
-        fig = ""
-    return fig
+labels_id = ['operadoras', 'year', 'mes','departamento','municipio','contrato','campo']
 
 @app.callback(
-    [dash.dependencies.Output(component_id="operadoras", component_property="disabled"),
-     dash.dependencies.Output(component_id="departamento", component_property="disabled"),
-     dash.dependencies.Output(component_id="municipio", component_property="disabled"),
-     dash.dependencies.Output(component_id="contrato", component_property="disabled"),
-     dash.dependencies.Output(component_id="campo", component_property="disabled"),],
-    [dash.dependencies.Input(component_id='ano', component_property='value')]
+    [dash.dependencies.Output(component_id="example-graph", component_property="figure"),
+     dash.dependencies.Output(component_id="operadoras", component_property="disabled")],
+     [dash.dependencies.Input(component_id=id, component_property="value") for id in labels_id]
 )
-def update_graph_2(ano):
-    if ano is None or ano == []:
+
+def update_graph(operadora, year, mes,departamento,municipio,contrato,campo):
+    list_params = [operadora,year,mes,departamento,municipio,contrato,campo] #With all our objects
+    out_params = [] #Empty list to fill with None or "" values
+    for param in list_params: #runs through our params
+        if param is None or param == []: #checks if None (first run) or empty
+            try:
+                out_list.append(param) #adds empty or None to out_list to get all values from this column
+                list_params.remove(param) #
+            except:
+                pass
+    if year is None or year == []:
         b = True
     else:
         b = False
-    return b, b, b, b, b
-
-@app.callback(
-    [dash.dependencies.Output(component_id="departamento", component_property="options"),
-     dash.dependencies.Output(component_id="municipio", component_property="options"),
-     dash.dependencies.Output(component_id="contrato", component_property="options"),
-     dash.dependencies.Output(component_id="campo", component_property="options")],
-    [dash.dependencies.Input(component_id='operadoras', component_property='value'),
-     dash.dependencies.Input(component_id='ano', component_property='value')]
-)
-def update_graph_3(operadora, ano):
+    if mes is None or mes == []:
+        mes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre','Diciembre']
+    if operadora is None or operadora == []:
+        operadora = [i for i in np.sort(pd.unique(df["Operadora"]))]
     try:
-        for i in ano:
-            copy = df.copy()
-            copy = copy[copy["Year"] == i]
-            if operadora is None or operadora == []:
-                filt_dep = [j for j in np.sort(pd.unique(copy["Departamento"]))]
-                filt_mun = [j for j in np.sort(pd.unique(copy["Municipio"]))]
-                filt_con = [j for j in np.sort(pd.unique(copy["Contrato"]))]
-                filt_cam = [j for j in np.sort(pd.unique(copy["Campo"]))]
-            else:
-                for k in operadora:
-                    op = copy[copy["Operadora"] == k]
-                    filt_dep = [j for j in np.sort(pd.unique(op["Departamento"]))]
-                    filt_mun = [j for j in np.sort(pd.unique(op["Municipio"]))]
-                    filt_con = [j for j in np.sort(pd.unique(op["Contrato"]))]
-                    filt_cam = [j for j in np.sort(pd.unique(op["Campo"]))]
-        opt_dep = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_dep))]
-        opt_mun = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_mun))]
-        opt_con = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_con))]
-        opt_cam = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_cam))]
-
+        #df_out = df.copy()
+        #list_params.append('Enero')
+        #df_out = df_out[df_out.columns & list_params]
+        #fig = px.bar(x=years, y=prod, color=op, barmode="group", labels=dict(x='Year', y='Production', color='Operadora')) #original functions
+        #fig = px.bar(df_out, x='Year', y='Enero')
+        #fig.update_xaxes(tick0=2017, dtick=1)
+        fig = px.bar(df, x='year', y='Febrero')
+        return fig,b
     except:
-        opt_dep = []
-        opt_mun = []
-        opt_con = []
-        opt_cam = []
-    return opt_dep, opt_mun, opt_con, opt_cam
+        fig = px.bar(df, x='year', y='Febrero')
+        return fig,b
+    return fig, b
 
 #url path
-@server.route("/production")
+@server.route("/production_5/")
 def my_dash_app():
     return app.index()
 
@@ -216,4 +163,3 @@ def index():
 #inicia app flask
 if __name__ == "__main__":
     server.run(debug=True)
-
