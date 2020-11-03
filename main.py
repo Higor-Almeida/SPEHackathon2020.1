@@ -61,7 +61,7 @@ app.layout = html.Div(children=[
 
     dcc.Dropdown(
         id='operadoras',
-        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Operadora"]))
+        options=[{'label': j, 'value': j} for j in np.sort(pd.unique(df["Operadora"]))
                  ],
         placeholder="Select an Operator",
         multi=True,
@@ -70,34 +70,34 @@ app.layout = html.Div(children=[
 
     dcc.Dropdown(
         id='departamento',
-        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Departamento"]))
-                 ],
+        options=[],
         placeholder="Select a Department",
-        multi=True
+        multi=True,
+        disabled=True
     ),
 
     dcc.Dropdown(
         id='municipio',
-        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Municipio"]))
-                 ],
+        options=[],
         placeholder="Select a County",
-        multi=True
+        multi=True,
+        disabled=True
     ),
 
     dcc.Dropdown(
         id='contrato',
-        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Contrato"]))
-                 ],
+        options=[],
         placeholder="Select a Contract",
-        multi=True
+        multi=True,
+        disabled=True
     ),
 
     dcc.Dropdown(
         id='campo',
-        options=[{'label': i, 'value': i} for i in np.sort(pd.unique(df["Campo"]))
-                 ],
+        options=[],
         placeholder="Select a Field",
-        multi=True
+        multi=True,
+        disabled=True
     ),
 
     dcc.Graph(
@@ -105,48 +105,97 @@ app.layout = html.Div(children=[
         figure={}
     )
 ])
-m = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre',
-     'Diciembre']
 
 @app.callback(
-    [dash.dependencies.Output(component_id="example-graph", component_property="figure"),
-     dash.dependencies.Output(component_id="operadoras", component_property="disabled")],
+    dash.dependencies.Output(component_id="example-graph", component_property="figure"),
     [dash.dependencies.Input(component_id='operadoras', component_property='value'),
      dash.dependencies.Input(component_id='ano', component_property='value'),
-     dash.dependencies.Input(component_id='mes', component_property='value')]
+     dash.dependencies.Input(component_id='mes', component_property='value'),
+     dash.dependencies.Input(component_id='departamento', component_property='value'),
+     dash.dependencies.Input(component_id='municipio', component_property='value'),
+     dash.dependencies.Input(component_id='contrato', component_property='value'),
+     dash.dependencies.Input(component_id='campo', component_property='value')]
 )
-def update_graph(operadora, ano, mes):
-    print(ano)
-    if ano is None or ano == []:
-        print('entrou if')
-        b = True
-    else:
-        print('entrou else')
-        b = False
+def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
     if mes is None or mes == []:
-        mes = m
+        mes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre',
+               'Noviembre', 'Diciembre']
     if operadora is None or operadora == []:
         operadora = [i for i in np.sort(pd.unique(df["Operadora"]))]
+    if departamento is None or departamento == []:
+        departamento = [i for i in np.sort(pd.unique(df["Departamento"]))]
     try:
         prod = []
         op = []
         anos = []
-        for j in operadora:
+        for oper in operadora:
             copy_data = df.copy()
-            copy_data = copy_data[copy_data["Operadora"] == j]
-            for i in ano:
+            copy_data = copy_data[copy_data["Operadora"] == oper]
+            for year in ano:
                 prod_cumu = 0
-                period = copy_data[copy_data["Year"] == i]
-                for z in mes:
-                    prod_cumu += period[z].sum()
+                period = copy_data[copy_data["Year"] == year]
+                for month in mes:
+                    prod_cumu += period[month].sum()
                 prod.append(prod_cumu)
-                op.append(j)
-                anos.append(i)
+                op.append(oper)
+                anos.append(year)
         fig = px.bar(x=anos, y=prod, color=op, barmode="group", labels=dict(x='Year', y='Production', color='Operadora'))
         fig.update_xaxes(tick0=2017, dtick=1)
     except:
         fig = ""
-    return fig, b
+    return fig
+
+@app.callback(
+    [dash.dependencies.Output(component_id="operadoras", component_property="disabled"),
+     dash.dependencies.Output(component_id="departamento", component_property="disabled"),
+     dash.dependencies.Output(component_id="municipio", component_property="disabled"),
+     dash.dependencies.Output(component_id="contrato", component_property="disabled"),
+     dash.dependencies.Output(component_id="campo", component_property="disabled"),],
+    [dash.dependencies.Input(component_id='ano', component_property='value')]
+)
+def update_graph_2(ano):
+    if ano is None or ano == []:
+        b = True
+    else:
+        b = False
+    return b, b, b, b, b
+
+@app.callback(
+    [dash.dependencies.Output(component_id="departamento", component_property="options"),
+     dash.dependencies.Output(component_id="municipio", component_property="options"),
+     dash.dependencies.Output(component_id="contrato", component_property="options"),
+     dash.dependencies.Output(component_id="campo", component_property="options")],
+    [dash.dependencies.Input(component_id='operadoras', component_property='value'),
+     dash.dependencies.Input(component_id='ano', component_property='value')]
+)
+def update_graph_3(operadora, ano):
+    try:
+        for i in ano:
+            copy = df.copy()
+            copy = copy[copy["Year"] == i]
+            if operadora is None or operadora == []:
+                filt_dep = [j for j in np.sort(pd.unique(copy["Departamento"]))]
+                filt_mun = [j for j in np.sort(pd.unique(copy["Municipio"]))]
+                filt_con = [j for j in np.sort(pd.unique(copy["Contrato"]))]
+                filt_cam = [j for j in np.sort(pd.unique(copy["Campo"]))]
+            else:
+                for k in operadora:
+                    op = copy[copy["Operadora"] == k]
+                    filt_dep = [j for j in np.sort(pd.unique(op["Departamento"]))]
+                    filt_mun = [j for j in np.sort(pd.unique(op["Municipio"]))]
+                    filt_con = [j for j in np.sort(pd.unique(op["Contrato"]))]
+                    filt_cam = [j for j in np.sort(pd.unique(op["Campo"]))]
+        opt_dep = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_dep))]
+        opt_mun = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_mun))]
+        opt_con = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_con))]
+        opt_cam = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_cam))]
+
+    except:
+        opt_dep = []
+        opt_mun = []
+        opt_con = []
+        opt_cam = []
+    return opt_dep, opt_mun, opt_con, opt_cam
 
 #url path
 @server.route("/production")
@@ -166,5 +215,5 @@ def index():
 
 #inicia app flask
 if __name__ == "__main__":
-    server.run()
+    server.run(debug=True)
 
