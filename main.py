@@ -117,13 +117,14 @@ app.layout = html.Div(children=[
      dash.dependencies.Input(component_id='campo', component_property='value')]
 )
 def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
+    list_parm = [departamento, municipio, contrato, campo]
+    list_label = ["Departamento", "Municipio", "Contrato", "Campo"]
     if mes is None or mes == []:
         mes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre',
                'Noviembre', 'Diciembre']
     if operadora is None or operadora == []:
-        operadora = [i for i in np.sort(pd.unique(df["Operadora"]))]
-    if departamento is None or departamento == []:
-        departamento = [i for i in np.sort(pd.unique(df["Departamento"]))]
+        fil = df[df["Year"].isin(ano)]
+        operadora = [i for i in np.sort(pd.unique(fil["Operadora"]))]
     try:
         prod = []
         op = []
@@ -133,17 +134,23 @@ def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
             copy_data = copy_data[copy_data["Operadora"] == oper]
             for year in ano:
                 period = copy_data[copy_data["Year"] == year]
+                for index in range(4):
+                    if list_parm[index] == [] or list_parm[index] is None:
+                        pass
+                    else:
+                        period = period[period[list_label[index]].isin(list_parm[index])]
                 prod_cumu = 0
-                for dep in departamento:
-                    dpr = period[period["Departamento"] == dep]
-                    for month in mes:
-                        prod_cumu += dpr[month].sum()
+                for month in mes:
+                    prod_cumu += period[month].sum()
                 prod.append(prod_cumu)
                 op.append(oper)
                 anos.append(year)
-        fig = px.bar(x=anos, y=prod, color=op, barmode="group", labels=dict(x='Year', y='Production', color='Operadora'))
+        resp = pd.DataFrame({'Ano': anos, 'Operadoras': op, 'Producion': prod})
+        resp = resp.sort_values(by=['Producion', 'Ano'])
+        fig = px.bar(resp, x='Ano', y='Producion', color='Operadoras', barmode="group", labels=dict(x='Year', y='Production', color='Operadora'))
         fig.update_xaxes(tick0=2017, dtick=1)
     except:
+        print(list_parm[0])
         fig = ""
     return fig
 
