@@ -132,10 +132,12 @@ def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
             copy_data = df.copy()
             copy_data = copy_data[copy_data["Operadora"] == oper]
             for year in ano:
-                prod_cumu = 0
                 period = copy_data[copy_data["Year"] == year]
-                for month in mes:
-                    prod_cumu += period[month].sum()
+                prod_cumu = 0
+                for dep in departamento:
+                    dpr = period[period["Departamento"] == dep]
+                    for month in mes:
+                        prod_cumu += dpr[month].sum()
                 prod.append(prod_cumu)
                 op.append(oper)
                 anos.append(year)
@@ -196,6 +198,7 @@ def update_graph_3(operadora, ano):
         opt_con = []
         opt_cam = []
     return opt_dep, opt_mun, opt_con, opt_cam
+
 
 #url path
 @server.route("/production")
