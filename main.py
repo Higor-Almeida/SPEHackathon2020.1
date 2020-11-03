@@ -137,11 +137,11 @@ def update_graph(operadora, year, mes,departamento,municipio,contrato,campo):
         #fig = px.bar(x=years, y=prod, color=op, barmode="group", labels=dict(x='Year', y='Production', color='Operadora')) #original functions
         #fig = px.bar(df_out, x='Year', y='Enero')
         #fig.update_xaxes(tick0=2017, dtick=1)
-        fig = px.bar(df, x='year', y='Febrero')
-        return fig,b
+        fig = px.bar(df, x='Year', y='Enero')
+        return fig, b
     except:
-        fig = px.bar(df, x='year', y='Febrero')
-        return fig,b
+        fig = px.bar(df, x='Year', y='Febrero')
+        return fig, b
     return fig, b
 
 #url path
