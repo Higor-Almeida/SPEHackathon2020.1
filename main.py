@@ -2,15 +2,17 @@ from flask import Flask
 from flask import render_template
 import dash
 from dash import Dash
+from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_table
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
 #carrega base
-df = pd.read_excel('colombia_consolidado.xlsx')
+df = pd.read_excel('files\colombia_consolidado.xlsx')
 
 #cria app flask
 server = Flask(__name__)
@@ -18,7 +20,7 @@ server = Flask(__name__)
 #dash style
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-#cria app dash
+#dash app for production
 app = dash.Dash(
     __name__,
     server=server, #instancia no app flask
@@ -103,7 +105,36 @@ app.layout = html.Div(children=[
     dcc.Graph(
         id='example-graph',
         figure={}
-    )
+    ),
+
+    html.Div([
+        html.H1(children="Ranking de los Campos"),
+        
+        dash_table.DataTable(
+            id='datatable',
+            columns=[{"name":i,"id":i} for i in df.columns],
+            page_current=0,
+            page_action='custom'
+        ),
+
+        html.Br(),
+        'Number of Rows: ',
+        dcc.Input(
+            id='datatable-row-count',
+            type="number",
+            min=1,
+            max=10,
+            value=5
+        ),
+
+        #dcc.Checklist(
+        #    id="datatable-sort-order",
+        #    options=[
+        #        {"label":"Ascending",'value':"True"}
+        #    ],
+        #    value=['True']
+        #)
+    ]),
 ])
 
 @app.callback(
@@ -206,17 +237,20 @@ def update_graph_3(operadora, ano):
         opt_cam = []
     return opt_dep, opt_mun, opt_con, opt_cam
 
+@app.callback(
+    Output('datatable','data'),
+    [Input('datatable-row-count','value')])
+def update_table(row_count):
+    #Function created to update the ranking table
+    try:
+        return df.iloc[:row_count,:].to_dict('records')
+    except:
+        return 20
 
 #url path
 @server.route("/production")
 def my_dash_app():
     return app.index()
-
-
-# @server.route("/ranking")
-# def my_dash_app_2():
-#     return app_2.index()
-
 
 @server.route("/")
 def index():
