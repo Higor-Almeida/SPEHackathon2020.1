@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 #carrega base
-df = pd.read_excel('colombia_consolidado.xlsx')
+df = pd.read_excel('processado.xlsx')
 
 #cria app flask
 server = Flask(__name__)
@@ -29,6 +29,20 @@ app = dash.Dash(
 
 #layout da página (no momento só o gráfico e os filtros, ainda faltam alguns filtros)
 app.layout = html.Div(children=[
+    dcc.Dropdown(
+        id='sel',
+        options=[
+            {'label': 'Operadora', 'value': 'Operadora'},
+            {'label': 'Departamento', 'value': 'Departamento'},
+            {'label': 'Municipio', 'value': 'Municipio'},
+            {'label': 'Contrato', 'value': 'Contrato'},
+            {'label': 'Campo', 'value': 'Campo'}
+        ],
+        placeholder="Select an option",
+        value='Operadora',
+        multi=False,
+    ),
+
     dcc.Dropdown(
         id='ano',
         options=[
@@ -105,34 +119,7 @@ app.layout = html.Div(children=[
         id='example-graph',
         figure={}
     ),
-    html.Div([
-        html.H1(children="Ranking de los Campos"),
 
-        dash_table.DataTable(
-            id='datatable',
-            columns=[{"name": i, "id": i} for i in df.columns],
-            page_current=0,
-            page_action='custom'
-        ),
-
-        html.Br(),
-        'Number of Rows: ',
-        dcc.Input(
-            id='datatable-row-count',
-            type="number",
-            min=1,
-            max=10,
-            value=5
-        ),
-
-        # dcc.Checklist(
-        #    id="datatable-sort-order",
-        #    options=[
-        #        {"label":"Ascending",'value':"True"}
-        #    ],
-        #    value=['True']
-        # )
-    ]),
 ])
 
 @app.callback(
@@ -148,28 +135,33 @@ app.layout = html.Div(children=[
      dash.dependencies.Input(component_id='departamento', component_property='value'),
      dash.dependencies.Input(component_id='municipio', component_property='value'),
      dash.dependencies.Input(component_id='contrato', component_property='value'),
-     dash.dependencies.Input(component_id='campo', component_property='value')]
+     dash.dependencies.Input(component_id='campo', component_property='value'),
+     dash.dependencies.Input(component_id='sel', component_property='value')]
 )
-def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
+def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo, sel):
     list_parm = [operadora, ano, departamento, municipio, contrato, campo]
     list_label = ["Operadora", "Year", "Departamento", "Municipio", "Contrato", "Campo"]
     if mes is None or mes == []:
         mes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre',
                'Noviembre', 'Diciembre']
-    if operadora is None or operadora == []:
-        fil = df[df["Year"].isin(ano)]
-        operadora = [i for i in np.sort(pd.unique(fil["Operadora"]))]
     try:
+        for o in range(6):
+            if sel == list_label[o]:
+                q = list_parm[o]
+                if q == [] or q is None:
+                    fil = df[df["Year"].isin(ano)]
+                    q = [i for i in np.sort(pd.unique(fil[sel]))]
+                    list_parm[o] = q
         prod = []
         op = []
         anos = []
-        for oper in operadora:
+        for oper in q:
             copy_data = df.copy()
-            copy_data = copy_data[copy_data["Operadora"] == oper]
+            copy_data = copy_data[copy_data[sel] == oper]
             for year in ano:
                 period = copy_data[copy_data["Year"] == year]
-                for index in range(2, 6):
-                    if list_parm[index] == [] or list_parm[index] is None:
+                for index in range(6):
+                    if list_parm[index] == [] or list_parm[index] is None or list_label[index] == sel or index == 1:
                         pass
                     else:
                         period = period[period[list_label[index]].isin(list_parm[index])]
@@ -179,22 +171,56 @@ def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
                 prod.append(prod_cumu)
                 op.append(oper)
                 anos.append(year)
-        resp = pd.DataFrame({'Ano': anos, 'Operadoras': op, 'Producion': prod})
-        resp = resp.sort_values(by=['Producion', 'Ano'])
-        fig = px.bar(resp, x='Ano', y='Producion', color='Operadoras', barmode="group", labels=dict(x='Year', y='Production', color='Operadora'))
+        resp = pd.DataFrame({'Ano': anos, sel: op, 'Producion': prod})
+        resp = resp.sort_values(by=['Producion'], ascending=False)
+        fig = px.bar(resp, x='Ano', y='Producion', color=sel, barmode="group")
         fig.update_xaxes(tick0=2017, dtick=1)
 
-        opt = df.copy()
+        opt_1 = df.copy()
+        opt_2 = df.copy()
+        opt_3 = df.copy()
+        opt_4 = df.copy()
+        opt_5 = df.copy()
         for index in range(6):
             if list_parm[index] == [] or list_parm[index] is None:
                 pass
             else:
-                opt = opt[opt[list_label[index]].isin(list_parm[index])]
-        opt_ope = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Operadora']))]
-        opt_dep = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Departamento']))]
-        opt_mun = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Municipio']))]
-        opt_con = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Contrato']))]
-        opt_cam = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Campo']))]
+                if list_label[index] == 'Operadora':
+                    opt_2 = opt_2[opt_2[list_label[index]].isin(list_parm[index])]
+                    opt_3 = opt_3[opt_3[list_label[index]].isin(list_parm[index])]
+                    opt_4 = opt_4[opt_4[list_label[index]].isin(list_parm[index])]
+                    opt_5 = opt_5[opt_5[list_label[index]].isin(list_parm[index])]
+                elif list_label[index] == 'Departamento':
+                    opt_1 = opt_1[opt_1[list_label[index]].isin(list_parm[index])]
+                    opt_3 = opt_3[opt_3[list_label[index]].isin(list_parm[index])]
+                    opt_4 = opt_4[opt_4[list_label[index]].isin(list_parm[index])]
+                    opt_5 = opt_5[opt_5[list_label[index]].isin(list_parm[index])]
+                elif list_label[index] == 'Municipio':
+                    opt_1 = opt_1[opt_1[list_label[index]].isin(list_parm[index])]
+                    opt_2 = opt_2[opt_2[list_label[index]].isin(list_parm[index])]
+                    opt_4 = opt_4[opt_4[list_label[index]].isin(list_parm[index])]
+                    opt_5 = opt_5[opt_5[list_label[index]].isin(list_parm[index])]
+                elif list_label[index] == 'Contrato':
+                    opt_1 = opt_1[opt_1[list_label[index]].isin(list_parm[index])]
+                    opt_2 = opt_2[opt_2[list_label[index]].isin(list_parm[index])]
+                    opt_3 = opt_3[opt_3[list_label[index]].isin(list_parm[index])]
+                    opt_5 = opt_5[opt_5[list_label[index]].isin(list_parm[index])]
+                elif list_label[index] == 'Campo':
+                    opt_1 = opt_1[opt_1[list_label[index]].isin(list_parm[index])]
+                    opt_2 = opt_2[opt_2[list_label[index]].isin(list_parm[index])]
+                    opt_3 = opt_3[opt_3[list_label[index]].isin(list_parm[index])]
+                    opt_4 = opt_4[opt_4[list_label[index]].isin(list_parm[index])]
+                else:
+                    opt_1 = opt_1[opt_1[list_label[index]].isin(list_parm[index])]
+                    opt_2 = opt_2[opt_2[list_label[index]].isin(list_parm[index])]
+                    opt_3 = opt_3[opt_3[list_label[index]].isin(list_parm[index])]
+                    opt_4 = opt_4[opt_4[list_label[index]].isin(list_parm[index])]
+                    opt_5 = opt_5[opt_5[list_label[index]].isin(list_parm[index])]
+        opt_ope = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt_1['Operadora']))]
+        opt_dep = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt_2['Departamento']))]
+        opt_mun = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt_3['Municipio']))]
+        opt_con = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt_4['Contrato']))]
+        opt_cam = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt_5['Campo']))]
     except:
         opt_ope = []
         opt_dep = []
