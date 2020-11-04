@@ -2,7 +2,6 @@ from flask import Flask
 from flask import render_template
 import dash
 from dash import Dash
-from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
@@ -12,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 #carrega base
-df = pd.read_excel('files\colombia_consolidado.xlsx')
+df = pd.read_excel('colombia_consolidado.xlsx')
 
 #cria app flask
 server = Flask(__name__)
@@ -20,7 +19,7 @@ server = Flask(__name__)
 #dash style
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-#dash app for production
+#cria app dash
 app = dash.Dash(
     __name__,
     server=server, #instancia no app flask
@@ -106,13 +105,12 @@ app.layout = html.Div(children=[
         id='example-graph',
         figure={}
     ),
-
     html.Div([
         html.H1(children="Ranking de los Campos"),
-        
+
         dash_table.DataTable(
             id='datatable',
-            columns=[{"name":i,"id":i} for i in df.columns],
+            columns=[{"name": i, "id": i} for i in df.columns],
             page_current=0,
             page_action='custom'
         ),
@@ -127,18 +125,23 @@ app.layout = html.Div(children=[
             value=5
         ),
 
-        #dcc.Checklist(
+        # dcc.Checklist(
         #    id="datatable-sort-order",
         #    options=[
         #        {"label":"Ascending",'value':"True"}
         #    ],
         #    value=['True']
-        #)
+        # )
     ]),
 ])
 
 @app.callback(
-    dash.dependencies.Output(component_id="example-graph", component_property="figure"),
+    [dash.dependencies.Output(component_id="example-graph", component_property="figure"),
+     dash.dependencies.Output(component_id="operadoras", component_property="options"),
+     dash.dependencies.Output(component_id="departamento", component_property="options"),
+     dash.dependencies.Output(component_id="municipio", component_property="options"),
+     dash.dependencies.Output(component_id="contrato", component_property="options"),
+     dash.dependencies.Output(component_id="campo", component_property="options")],
     [dash.dependencies.Input(component_id='operadoras', component_property='value'),
      dash.dependencies.Input(component_id='ano', component_property='value'),
      dash.dependencies.Input(component_id='mes', component_property='value'),
@@ -148,8 +151,8 @@ app.layout = html.Div(children=[
      dash.dependencies.Input(component_id='campo', component_property='value')]
 )
 def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
-    list_parm = [departamento, municipio, contrato, campo]
-    list_label = ["Departamento", "Municipio", "Contrato", "Campo"]
+    list_parm = [operadora, ano, departamento, municipio, contrato, campo]
+    list_label = ["Operadora", "Year", "Departamento", "Municipio", "Contrato", "Campo"]
     if mes is None or mes == []:
         mes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre',
                'Noviembre', 'Diciembre']
@@ -165,7 +168,7 @@ def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
             copy_data = copy_data[copy_data["Operadora"] == oper]
             for year in ano:
                 period = copy_data[copy_data["Year"] == year]
-                for index in range(4):
+                for index in range(2, 6):
                     if list_parm[index] == [] or list_parm[index] is None:
                         pass
                     else:
@@ -180,10 +183,26 @@ def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo):
         resp = resp.sort_values(by=['Producion', 'Ano'])
         fig = px.bar(resp, x='Ano', y='Producion', color='Operadoras', barmode="group", labels=dict(x='Year', y='Production', color='Operadora'))
         fig.update_xaxes(tick0=2017, dtick=1)
+
+        opt = df.copy()
+        for index in range(6):
+            if list_parm[index] == [] or list_parm[index] is None:
+                pass
+            else:
+                opt = opt[opt[list_label[index]].isin(list_parm[index])]
+        opt_ope = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Operadora']))]
+        opt_dep = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Departamento']))]
+        opt_mun = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Municipio']))]
+        opt_con = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Contrato']))]
+        opt_cam = [{'label': j, 'value': j} for j in np.sort(pd.unique(opt['Campo']))]
     except:
-        print(list_parm[0])
+        opt_ope = []
+        opt_dep = []
+        opt_mun = []
+        opt_con = []
+        opt_cam = []
         fig = ""
-    return fig
+    return fig, opt_ope, opt_dep, opt_mun, opt_con, opt_cam
 
 @app.callback(
     [dash.dependencies.Output(component_id="operadoras", component_property="disabled"),
@@ -201,45 +220,8 @@ def update_graph_2(ano):
     return b, b, b, b, b
 
 @app.callback(
-    [dash.dependencies.Output(component_id="departamento", component_property="options"),
-     dash.dependencies.Output(component_id="municipio", component_property="options"),
-     dash.dependencies.Output(component_id="contrato", component_property="options"),
-     dash.dependencies.Output(component_id="campo", component_property="options")],
-    [dash.dependencies.Input(component_id='operadoras', component_property='value'),
-     dash.dependencies.Input(component_id='ano', component_property='value')]
-)
-def update_graph_3(operadora, ano):
-    try:
-        for i in ano:
-            copy = df.copy()
-            copy = copy[copy["Year"] == i]
-            if operadora is None or operadora == []:
-                filt_dep = [j for j in np.sort(pd.unique(copy["Departamento"]))]
-                filt_mun = [j for j in np.sort(pd.unique(copy["Municipio"]))]
-                filt_con = [j for j in np.sort(pd.unique(copy["Contrato"]))]
-                filt_cam = [j for j in np.sort(pd.unique(copy["Campo"]))]
-            else:
-                for k in operadora:
-                    op = copy[copy["Operadora"] == k]
-                    filt_dep = [j for j in np.sort(pd.unique(op["Departamento"]))]
-                    filt_mun = [j for j in np.sort(pd.unique(op["Municipio"]))]
-                    filt_con = [j for j in np.sort(pd.unique(op["Contrato"]))]
-                    filt_cam = [j for j in np.sort(pd.unique(op["Campo"]))]
-        opt_dep = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_dep))]
-        opt_mun = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_mun))]
-        opt_con = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_con))]
-        opt_cam = [{'label': j, 'value': j} for j in np.sort(pd.unique(filt_cam))]
-
-    except:
-        opt_dep = []
-        opt_mun = []
-        opt_con = []
-        opt_cam = []
-    return opt_dep, opt_mun, opt_con, opt_cam
-
-@app.callback(
-    Output('datatable','data'),
-    [Input('datatable-row-count','value')])
+    dash.dependencies.Output('datatable', 'data'),
+    [dash.dependencies.Input('datatable-row-count', 'value')])
 def update_table(row_count):
     #Function created to update the ranking table
     try:
@@ -251,6 +233,12 @@ def update_table(row_count):
 @server.route("/production")
 def my_dash_app():
     return app.index()
+
+
+# @server.route("/ranking")
+# def my_dash_app_2():
+#     return app_2.index()
+
 
 @server.route("/")
 def index():
