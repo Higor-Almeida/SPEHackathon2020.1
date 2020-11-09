@@ -13,6 +13,13 @@ import numpy as np
 #carrega base
 df = pd.read_excel('processado.xlsx')
 
+month_cols = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre',
+                  'Octubre','Noviembre','Diciembre']
+
+params = {"Enero":31,"Febrero":28,"Marzo":31,"Abril":30,"Mayo":31,"Junio":30,"Julio":31,
+          "Agosto":31,"Septiembre":30,"Octubre":31,"Noviembre":30,"Diciembre":31}
+df[month_cols] = df[month_cols].assign(**params).mul(df[month_cols])
+
 #cria app flask
 server = Flask(__name__)
 
@@ -26,6 +33,7 @@ app = dash.Dash(
     url_base_pathname='/production/',
     external_stylesheets=external_stylesheets
 )
+# server = app.server
 
 #layout da página (no momento só o gráfico e os filtros, ainda faltam alguns filtros)
 app.layout = html.Div(children=[
@@ -142,8 +150,7 @@ def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo, 
     list_parm = [operadora, ano, departamento, municipio, contrato, campo]
     list_label = ["Operadora", "Year", "Departamento", "Municipio", "Contrato", "Campo"]
     if mes is None or mes == []:
-        mes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre',
-               'Noviembre', 'Diciembre']
+        mes = month_cols
     try:
         for o in range(6):
             if sel == list_label[o]:
@@ -173,7 +180,7 @@ def update_graph(operadora, ano, mes, departamento, municipio, contrato, campo, 
                 anos.append(year)
         resp = pd.DataFrame({'Ano': anos, sel: op, 'Producion': prod})
         resp = resp.sort_values(by=['Producion'], ascending=False)
-        fig = px.bar(resp, x='Ano', y='Producion', color=sel, barmode="group")
+        fig = px.bar(resp, x='Ano', y='Producion', color=sel, barmode="group", labels={'Producion': 'Producion (STB/d)'})
         fig.update_xaxes(tick0=2017, dtick=1)
 
         opt_1 = df.copy()
@@ -259,12 +266,6 @@ def update_table(row_count):
 @server.route("/production")
 def my_dash_app():
     return app.index()
-
-
-# @server.route("/ranking")
-# def my_dash_app_2():
-#     return app_2.index()
-
 
 @server.route("/")
 def index():
